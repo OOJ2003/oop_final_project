@@ -142,7 +142,7 @@ impl Bank {
         }
     }
 
-    fn init_without_file() -> Bank{
+    fn init_without_file() -> Bank {
         let mut temp = HashMap::new();
         temp.insert(
             "test".to_string(),
@@ -154,17 +154,22 @@ impl Bank {
                 debt: None,
             },
         );
-        Bank {all_account: temp, count: 1}
+        Bank {
+            all_account: temp,
+            count: 1,
+        }
     }
 
-    fn init_with_file() -> Bank{
+    fn init_with_file() -> Bank {
         let mut file_path = String::new();
         let mut buf = String::new();
         println!("请输入存放用户数据的json文件的路径");
         io::stdin().read_line(&mut file_path).expect("非法输入。");
         match read_file(file_path.as_str(), &mut buf) {
-            Ok(()) => {},
-            _ => {panic!("无法打开文件！")},
+            Ok(()) => {}
+            _ => {
+                panic!("无法打开文件！")
+            }
         }
 
         serde_json::from_str(&buf).expect("json解析失败。")
@@ -207,11 +212,8 @@ fn help() {
     println!("(6) 保存所有信息并退出");
 }
 
-
-
 fn read_file(file_path: &str, buf: &mut String) -> io::Result<()> {
     let mut f = std::fs::File::open(file_path)?;
     io::Read::read_to_string(&mut f, buf)?;
     Ok(())
 }
-
