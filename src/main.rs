@@ -62,6 +62,7 @@ fn main() {
     } else {
         Bank::init_without_file()
     };
+    println!("初始化已完成。\n\n");
 
     let mut s = String::new();
     let mut t = String::new();
@@ -206,7 +207,7 @@ fn main() {
                 println!("请输入要储存的文件的路径。");
                 io::stdin().read_line(&mut s).expect("异常输入");
                 let mut file = write_file(s.as_str()).expect("打开文件失败！");
-                let serialized = serde_json::to_string(&bank).expect("json转换失败！");
+                let serialized = serde_json::to_string(&bank).expect("序列化为json失败！");
                 file.write(serialized.as_bytes()).expect("写入文件失败！");
                 break;
             }
@@ -351,7 +352,7 @@ impl Bank {
             }
         }
 
-        serde_json::from_str(&buf).expect("json解析失败。")
+        serde_json::from_str(&buf).expect("json反序列化失败。")
     }
 }
 
