@@ -33,7 +33,7 @@ fn main() {
         Command::new("read")
     };
 
-    // hello();
+    hello();
     let mut line = String::new();
     let mut flag: bool;
     println!("欢迎使用储蓄账户管理系统，是否从已备份的文件加载储户信息？(y/n)");
