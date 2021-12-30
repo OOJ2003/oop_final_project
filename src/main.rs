@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::{self, HashMap};
-use std::io::{self, stdin};
+use std::io::{self, stdin, Write};
 use std::process::Command;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -62,13 +62,16 @@ fn main() {
     } else {
         Bank::init_without_file()
     };
+
     let mut s = String::new();
     let mut t = String::new();
+
     loop {
         line.clear();
         t.clear();
         s.clear();
-        clear.spawn();
+        //stop.spawn();
+        //clear.spawn();
         help();
         io::stdin().read_line(&mut line).expect("异常输入。");
         match line.as_str().trim() {
@@ -78,12 +81,13 @@ fn main() {
                 println!("请输入密码。");
                 io::stdin().read_line(&mut t).expect("异常输入。");
 
-                match bank.get_account(t.as_str(), s.as_str()) {
+                match bank.get_account(t.as_str().trim(), s.as_str().trim()) {
                     Ok(x) => {
+                        s.clear();
                         println!("请输入存取款金额。");
                         io::stdin().read_line(&mut s).expect("异常输入。");
 
-                        let a: f64 = match s.parse::<f64>() {
+                        let a: f64 = match s.trim().parse::<f64>() {
                             Ok(x) => x,
                             Err(_) => {
                                 println!("无法解析为数字的输入！");
@@ -107,7 +111,7 @@ fn main() {
                 println!("请输入密码。");
                 io::stdin().read_line(&mut t).expect("异常输入。");
 
-                match bank.get_account(t.as_str(), s.as_str()) {
+                match bank.get_account(t.as_str().trim(), s.as_str().trim()) {
                     Ok(x) => x.account_display(),
                     Err(y) => println!("错误：{}", &y),
                 }
@@ -118,7 +122,7 @@ fn main() {
                 println!("请输入密码。");
                 io::stdin().read_line(&mut t).expect("异常输入。");
 
-                let account = match bank.get_account(t.as_str(), s.as_str()) {
+                let account = match bank.get_account(t.as_str().trim(), s.as_str().trim()) {
                     Ok(x) => x,
                     Err(y) => {
                         println!("错误：{}", &y);
@@ -127,9 +131,11 @@ fn main() {
                 };
 
                 println!("请输入贷款金额。");
+                s.clear();
                 io::stdin().read_line(&mut s).expect("异常输入。");
 
-                let a: f64 = match s.parse::<f64>() {
+                
+                let a: f64 = match s.trim().parse::<f64>() {
                     Ok(x) => x,
                     Err(_) => {
                         println!("无法解析为数字的输入！");
@@ -148,7 +154,7 @@ fn main() {
                 println!("请输入密码。");
                 io::stdin().read_line(&mut t).expect("异常输入。");
 
-                let account = match bank.get_account(t.as_str(), s.as_str()) {
+                let account = match bank.get_account(t.as_str().trim(), s.as_str().trim()) {
                     Ok(x) => x,
                     Err(y) => {
                         println!("错误：{}", &y);
@@ -158,12 +164,51 @@ fn main() {
 
                 let k = account.id.clone();
                 bank.all_account.remove(&k);
+                bank.count -= 1;
                 println!("已成功为{}账户办理销户业务。", &k);
             }
             "5" => {
-                let mut name = String::new();
-                io::stdin().read_line(&mut name).expect("异常输入");
+                println!("请输入卡号。");
+                io::stdin().read_line(&mut s).expect("异常输入。");
+                println!("请输入密码。");
+                io::stdin().read_line(&mut t).expect("异常输入。");
 
+                match bank.get_account(t.as_str().trim(), s.as_str().trim()) {
+                    Ok(x) => match x.debt {
+                        None => println!("此储户无欠款。"),
+                        Some(_) => {
+                            println!("请输入还款金额。");
+                            s.clear();
+                            io::stdin().read_line(&mut s).expect("异常输入。");
+                            match s.trim().parse::<f64>() {
+                                Ok(y) => {
+                                    match x.debt_pay(y) {
+                                        Ok(z) => println!("{}", &z),
+                                        Err(z) => println!("错误：{}", &z),
+                                    }
+                                },
+                                Err(_) => {
+                                    println!("无法解析为数字的输入！")
+                                },
+                            }
+                        }
+                    },
+                    Err(x) => println!("错误：{}", &x),
+                }
+            }
+            "6" => {
+                let mut account = Account::account_new();
+                bank.all_account.insert(account.id.clone(), account);
+                bank.count += 1;
+                println!("新帐号录入成功。");
+            }
+            "7" => {
+                println!("请输入要储存的文件的路径。");
+                io::stdin().read_line(&mut s).expect("异常输入");
+                let mut file = write_file(s.as_str()).expect("打开文件失败！");
+                let serialized = serde_json::to_string(&bank).expect("json转换失败！");
+                file.write(serialized.as_bytes()).expect("写入文件失败！");
+                break;
             }
             _ => {
                 println!("未匹配的输入，请重新输入选项！");
@@ -224,11 +269,31 @@ impl Account {
         println!("账户余额：{}", self.money);
         match self.debt {
             Some(x) => println!("负债：￥ {}", x),
-            None => println!("当前户主无负债。"),
+            None => println!("当前户主无负债。\n"),
         }
     }
 
-     
+    fn account_new() -> Account {
+        let mut name = String::new();
+        println!("请输入姓名。");
+        io::stdin().read_line(&mut name).expect("异常输入。");
+
+        let mut id = String::new();
+        println!("请输入卡号。");
+        io::stdin().read_line(&mut id).expect("异常输入。");
+
+        let mut password = String::new();
+        println!("请输入密码。");
+        io::stdin().read_line(&mut password).expect("异常输入。");
+
+        Account {
+            name: name.trim().to_string(),
+            id: id.trim().to_string(),
+            password: password.trim().to_string(),
+            money: 0.0,
+            debt: None,
+        }
+    }
 }
 
 impl Bank {
@@ -259,7 +324,7 @@ impl Bank {
     fn init_without_file() -> Bank {
         let mut temp = HashMap::new();
         temp.insert(
-            "test".to_string(),
+            "mb12345".to_string(),
             Account {
                 name: "test".to_string(),
                 id: "mb12345".to_string(),
@@ -322,12 +387,21 @@ fn help() {
     println!("(2) 查询指定卡号的账户的信息");
     println!("(3) 为指定卡号的账户办理贷款业务");
     println!("(4) 注销指定卡号的账户");
-    println!("(5) 增加新的账户");
-    println!("(6) 保存所有信息并退出");
+    println!("(5) 为指定卡号的账户偿还贷款");
+    println!("(6) 增加新的账户");
+    println!("(7) 保存所有信息并退出");
 }
 
 fn read_file(file_path: &str, buf: &mut String) -> io::Result<()> {
-    let mut f = std::fs::File::open(file_path)?;
+    let mut f = std::fs::File::open(file_path.trim())?;
     io::Read::read_to_string(&mut f, buf)?;
     Ok(())
+}
+
+fn write_file(file_path: &str) -> io::Result<std::fs::File> {
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(file_path.trim())?;
+    Ok(file)
 }
