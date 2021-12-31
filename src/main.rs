@@ -285,8 +285,8 @@ impl 银行 {
             .read_line(&mut pass_prove)
             .expect("异常输入，程序将终止运行。");
 
-        if pass.as_str() == pass_prove.as_str() {
-            account.密码 = pass;
+        if pass.as_str().trim() == pass_prove.as_str().trim() {
+            account.密码 = pass.trim().to_string();
             Ok("密码修改成功，请您牢记你的新密码。")
         } else {
             Err("两次输入的结果不匹配。")
