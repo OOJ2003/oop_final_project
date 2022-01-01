@@ -1,12 +1,10 @@
-#![allow(unused)]
-
-use crossterm::terminal::{Clear, ClearType};
+use crossterm::terminal::{Clear};
 use crossterm::ExecutableCommand;
 use serde::{Deserialize, Serialize};
 
-use std::collections::{self, HashMap};
-use std::io::{self, stdin, stdout, Write};
-use std::process::Command;
+use std::collections::{HashMap};
+use std::io::{self, stdout, Write};
+
 
 #[macro_export]
 macro_rules! 打印消息 {
@@ -36,7 +34,7 @@ struct 银行 {
 fn main() {
     hello();
     let mut line = String::new();
-    let mut flag: bool;
+    let flag: bool;
     println!("欢迎使用储蓄账户管理系统，是否从已备份的文件加载储户信息？(y/n)");
 
     loop {
@@ -58,7 +56,7 @@ fn main() {
         }
     }
 
-    let mut bank = if flag {
+    let bank = if flag {
         银行::有文件初始化()
     } else {
         银行::无文件初始化()
@@ -81,7 +79,7 @@ impl 账户 {
     fn 获取贷款(&mut self) -> Result<&str, &str> {
         match self.债务 {
             None => {}
-            Some(x) => return Err("已存在贷款，无法在还清贷款前继续借贷。"),
+            Some(_x) => return Err("已存在贷款，无法在还清贷款前继续借贷。"),
         }
         let y = get_a_f64("请输入贷款金额。")?;
         if y <= 0.0 {
@@ -159,7 +157,7 @@ impl 银行 {
         if self.账户哈希表.len() <= 0 {
             return Err("当前系统内没有储户信息！");
         }
-        for (m, n) in &self.账户哈希表 {
+        for (_m, n) in &self.账户哈希表 {
             n.输出账户信息();
         }
 
@@ -245,7 +243,7 @@ impl 银行 {
         let account = self.获取账户可变引用()?;
         let delta = get_a_f64("请输入存取款金额。")?;
         match account.余额变更(delta) {
-            Ok(x) => Ok("存取款成功。"),
+            Ok(_x) => Ok("存取款成功。"),
             Err(_) => todo!(),
         }
     }
@@ -343,11 +341,6 @@ impl 银行 {
     }
 }
 
-impl Drop for 账户 {
-    fn drop(&mut self) {
-        self;
-    }
-}
 
 fn hello() {
     println!(
@@ -395,7 +388,7 @@ fn read_file(file_path: &str, buf: &mut String) -> io::Result<()> {
 }
 
 fn write_file(file_path: &str) -> io::Result<std::fs::File> {
-    let mut file = std::fs::OpenOptions::new()
+    let file = std::fs::OpenOptions::new()
         .write(true)
         .truncate(true)
         .open(file_path.trim())?;
@@ -418,9 +411,8 @@ fn event_loop(mut bank: 银行) {
     let mut line = String::new();
     let mut stdout = stdout();
     loop {
-        stdout.execute(Clear(crossterm::terminal::ClearType::All));
+        stdout.execute(Clear(crossterm::terminal::ClearType::All)).expect("终端命令执行错误。");
         help();
-        println!("输入数字以继续！");
         line.clear();
         println!("输入数字进行对应操作。\n");
         io::stdin().read_line(&mut line).expect("异常输入。");
@@ -453,7 +445,7 @@ fn event_loop(mut bank: 银行) {
             }
             "6" => {
                 //开户业务
-                let mut account = 账户::新建账户();
+                let account = 账户::新建账户();
                 bank.账户哈希表.insert(account.卡号.clone(), account);
             }
             "7" => {
