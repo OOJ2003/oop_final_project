@@ -97,8 +97,10 @@ impl 账户 {
         } else if self.余额 >= money {
             if money >= self.债务.unwrap() {
                 self.余额 -= self.债务.unwrap();
+                self.债务 = Some(0.0);
             } else {
                 self.余额 -= money;
+                self.债务 = Some(self.债务.unwrap() - money);
             }
             if self.债务.unwrap() == 0.0 {
                 self.债务 = None;
@@ -447,6 +449,7 @@ fn event_loop(mut bank: 银行) {
                 //开户业务
                 let account = 账户::新建账户();
                 bank.账户哈希表.insert(account.卡号.clone(), account);
+                println!("开户成功！");
             }
             "7" => {
                 //修改账户密码
