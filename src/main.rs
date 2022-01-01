@@ -1,7 +1,7 @@
 #![allow(unused)]
 
-use crossterm::ExecutableCommand;
 use crossterm::terminal::{Clear, ClearType};
+use crossterm::ExecutableCommand;
 use serde::{Deserialize, Serialize};
 
 use std::collections::{self, HashMap};
@@ -39,7 +39,6 @@ fn main() {
     let mut flag: bool;
     println!("欢迎使用储蓄账户管理系统，是否从已备份的文件加载储户信息？(y/n)");
 
-    
     loop {
         line.clear();
         io::stdin().read_line(&mut line).expect("异常输入。");
@@ -98,11 +97,10 @@ impl 账户 {
         if money < 0.0 {
             Err("非法数据。")
         } else if self.余额 >= money {
-            if money>= self.债务.unwrap() {
+            if money >= self.债务.unwrap() {
                 self.余额 -= self.债务.unwrap();
-            }
-            else {
-            self.余额 -= money;
+            } else {
+                self.余额 -= money;
             }
             if self.债务.unwrap() == 0.0 {
                 self.债务 = None;
@@ -189,6 +187,27 @@ impl 银行 {
         }
     }
 
+    fn 获取账户引用(&self) -> Result<&账户, &str> {
+        let mut id = String::new();
+        println!("请输入卡号。");
+        io::stdin().read_line(&mut id).expect("异常输入。");
+
+        let mut password = String::new();
+        println!("请输入密码。");
+        io::stdin().read_line(&mut password).expect("异常输入。");
+
+        match self.账户哈希表.get(id.trim()) {
+            None => return Err("账户不存在。"),
+            Some(x) => {
+                if x.密码 == password.trim() {
+                    return Ok(x);
+                } else {
+                    return Err("密码错误。");
+                }
+            }
+        }
+    }
+
     fn 无文件初始化() -> 银行 {
         let mut temp = HashMap::new();
         temp.insert(
@@ -247,8 +266,11 @@ impl 银行 {
         account.偿还贷款()
     }
 
-    fn 销户业务(&mut self) -> Result<&str, &str> {
-        let account = self.获取账户可变引用();
+    fn 销户业务(&mut self) -> Result<String, &str> {
+        let account = self.获取账户引用()?;
+        let id = account.卡号.clone();
+        drop(account);
+
         let what = [
             "确定吗？(y/n)",
             "您真的确定办理销户业务吗？(y/n)",
@@ -267,7 +289,12 @@ impl 银行 {
             }
             line.clear();
         }
-        Ok("销户业务办理成功，您的储户信息已被移出本行管理系统。")
+        Ok(id)
+    }
+
+    fn 销户业务后半部分(&mut self, id: String) -> Result<&str, &str> {
+        self.账户哈希表.remove(&id);
+        Ok("销户成功。")
     }
 
     fn 修改账户密码(&mut self) -> Result<&str, &str> {
@@ -313,6 +340,12 @@ impl 银行 {
         file.write(serialized.as_bytes())
             .expect("将数据写入文件中发生意外，程序将强制退出。");
         Ok("保存成功，程序将退出运行。")
+    }
+}
+
+impl Drop for 账户 {
+    fn drop(&mut self) {
+        self;
     }
 }
 
@@ -410,12 +443,18 @@ fn event_loop(mut bank: 银行) {
             }
             "5" => {
                 //销户业务
-                打印消息!((&mut bank).销户业务())
+                打印消息!({ 
+                    let id = (&mut bank).销户业务();
+                    match id {
+                        Ok(x) => (&mut bank).销户业务后半部分(x),
+                        Err(x) => Err(x),
+                    } 
+                })
             }
             "6" => {
                 //开户业务
                 let mut account = 账户::新建账户();
-                bank.账户哈希表.insert(account.姓名.clone(), account);
+                bank.账户哈希表.insert(account.卡号.clone(), account);
             }
             "7" => {
                 //修改账户密码
